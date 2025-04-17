@@ -20,9 +20,11 @@ import sys
 import tempfile
 from collections import namedtuple
 import getopt
+from typing import Optional
 
 toolVersion = '1.5.0'
 verbose = False
+
 
 # ========  CLASSES  ========
 class BColors:
@@ -51,7 +53,13 @@ class Printer:
     """Provides methods to print out formatted/colored messages."""
 
     @staticmethod
-    def error(msg, bold=False, prefix=True, startNewline=False, endNewline=True):
+    def error(
+            msg: str,
+            bold: Optional[bool] = False,
+            prefix: Optional[bool] = True,
+            startNewline: Optional[bool] = False,
+            endNewline: Optional[bool] = True
+    ) -> None:
         """Prints an error message (light red).
 
         Parameter
@@ -78,7 +86,13 @@ class Printer:
             print(output, end="")
 
     @staticmethod
-    def warning(msg, bold=False, prefix=True, startNewline=False, endNewline=True):
+    def warning(
+            msg,
+            bold: Optional[bool] = False,
+            prefix: Optional[bool] = True,
+            startNewline: Optional[bool] = False,
+            endNewline: Optional[bool] = True
+    ) -> None:
         """Prints a warning message (light yellow).
 
         Parameter
@@ -104,7 +118,12 @@ class Printer:
             print(output, end="")
 
     @staticmethod
-    def success(msg, bold=False, startNewline=False, endNewline=True):
+    def success(
+            msg,
+            bold: Optional[bool] = False,
+            startNewline: Optional[bool] = False,
+            endNewline: Optional[bool] = True
+    ) -> None:
         """Prints a success message (green).
 
         Parameter
@@ -129,7 +148,12 @@ class Printer:
             print(output, end="")
 
     @staticmethod
-    def tool(msg, bold=False, startNewline=False, endNewline=True):
+    def tool(
+            msg,
+            bold: Optional[bool] = False,
+            startNewline: Optional[bool] = False,
+            endNewline: Optional[bool] = True
+    ) -> None:
         """Prints a tool message (cyan).
 
         Parameter
@@ -152,7 +176,12 @@ class Printer:
             print(output, end="")
 
     @staticmethod
-    def default(msg, bold=False, startNewline=False, endNewline=True):
+    def default(
+            msg,
+            bold: Optional[bool] = False,
+            startNewline: Optional[bool] = False,
+            endNewline: Optional[bool] = True
+    ) -> None:
         """Prints message (default color).
 
         Parameter
@@ -176,22 +205,16 @@ class Printer:
 
 
 # ========  FUNCTIONS  ========
-def atoi(text):
-    return int(text) if text.isdigit() else text
+def printPossibleNewTags(lastTag: str, prefix: str) -> None:
+    """Prints possible next git tags.
 
-
-def natural_keys(elem):
+    Parameter
+    ---------
+    lastTag : str
+        The last Git tag found
+    prefix : str
+        The Git tag prefix
     """
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    """
-    # patch = elem[3]
-    patch = elem
-    return [atoi(c) for c in re.split(r'(\d+)', patch)]
-
-
-def printPossibleNewTags(lastTag, prefix):
     versionParts = lastTag.split('.')
     major = versionParts[0][(versionParts[0].find('-') + 1)]
     minor = versionParts[1]
@@ -211,11 +234,26 @@ def printPossibleNewTags(lastTag, prefix):
     Printer.default('Next possible PATCH version: ' + nextPatch)
 
 
-def notEmpty(s):
+def notEmpty(s: str) -> bool:
+    """Checks if the given string is empty.
+
+    Parameter
+    ---------
+    s : str
+    """
     return len(s) > 0 and not s.isspace()
 
 
-def getLastGitTag(prefix):
+def getLastGitTag(prefix: str) -> None:
+    """Get the last Git tag
+    This method executes `git fetch` and `git tag` to get all actual Git tags. After that it determines the last
+    Git tag (w/o prefix).
+
+    Parameter
+    ---------
+    prefix : str
+        Git tag prefix if provided
+    """
     gittags = []
     tags = []
     pattern = prefix + r'(\d{1,2})\.(\d{1,4})\.(\d{1,4})'
@@ -260,19 +298,13 @@ def getLastGitTag(prefix):
 
         for item in gittags:
             tag = item[0]
-            if prefix == '':
-                tag = tag[len(prefix):len(tag)]
-            else:
-                tag = tag[len(prefix):len(tag)]
+            tag = tag[len(prefix):len(tag)]
             tags.append(tag)
 
         tags.sort(key=lambda s: list(map(int, s.split('.'))))
-
-        # for item in tags:
-        #     printMsg(item)
-
         lastTag = tags[-1]
         Printer.success('Latest tag is: ' + prefix + lastTag)
+
         printPossibleNewTags(lastTag, prefix)
 # ======== END OF FUNCTIONS ========
 

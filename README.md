@@ -2,10 +2,13 @@
 ## Description
 This tool check all existing (local) git tags in a repository and return the last tag, and possible next tags.
 
+## License
+GNU General Public License (GPL) v3
+
 ## Installation
 ### Requirements
-
-**Python version**: >= 3.12.0<br>
+- **Python version**: >= 3.12.0<br>
+- **Git**
 
 To install this tool just copy the file into /usr/bin and set execution permissions (chmod 755).
 
