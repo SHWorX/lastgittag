@@ -39,6 +39,6 @@ user@machine:/path/to/repository$ lastgittag -h
 USAGE: lastgittag --prefix=<tag-prefix>
 -h				Shows this help
 -p	--prefix=<tag-prefix>	Git tag prefix
--v	--version		Print the version of the lastgittag tool
--vv	--verbose		Verbose output
+-V	--version		Print the version of the lastgittag tool
+-v	--verbose		Verbose output
 ```

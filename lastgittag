@@ -338,8 +338,8 @@ def main():
             Printer.default('USAGE: lastgittag --prefix=<tag-prefix>')
             Printer.default('-h\t\t\t\tShows this help')
             Printer.default('-p\t--prefix=<tag-prefix>\tGit tag prefix')
-            Printer.default('-v\t--version\t\tPrint the version of the lastgittag tool')
-            Printer.default('-vv\t--verbose\t\tVerbose output')
+            Printer.default('-V\t--version\t\tPrint the version of the lastgittag tool')
+            Printer.default('-v\t--verbose\t\tVerbose output')
             sys.exit()
         elif opt in ('-p', '--prefix'):
             prefix = arg
