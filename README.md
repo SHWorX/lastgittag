@@ -2,6 +2,11 @@
 ## Description
 This tool check all existing (local) git tags in a repository and return the last tag, and possible next tags.
 
+**Important note:** This tool works only correct, if a semantic versioning is used in the Git tags, see examples below.
+
+Example Git tag **without** prefix: 1.2.5<br>
+Example Git tag **with** prefix: release-1.2.5
+
 ## License
 GNU General Public License (GPL) v3
 
@@ -33,7 +38,7 @@ Next possible MAJOR version: release-2.0.0
 Next possible MINOR version: release-1.368.0
 Next possible PATCH version: release-1.367.127
 ```
-Show help:
+All available options:
 ```shell
 user@machine:/path/to/repository$ lastgittag -h
 USAGE: lastgittag --prefix=<tag-prefix>
