@@ -22,8 +22,10 @@ from collections import namedtuple
 import getopt
 from typing import Optional
 
-toolVersion = '1.5.1'
+toolVersion = '1.5.2'
 verbose = False
+localOnly = False
+prefix = ''
 
 
 # ========  CLASSES  ========
@@ -205,16 +207,33 @@ class Printer:
 
 
 # ========  FUNCTIONS  ========
-def printPossibleNewTags(lastTag: str, prefix: str) -> None:
+def extractSemanticVersion(tag):
+    """Extract semantic version only
+
+    Parameter
+    ---------
+    tag : str
+        The Git tag
+    """
+    match = re.search(r'\b(\d+)\.(\d+)\.(\d+)\b', tag)
+    if match:
+        return '.'.join(match.groups())
+    return None
+
+
+def printPossibleNewTags(lastTag: str) -> None:
     """Prints possible next git tags.
 
     Parameter
     ---------
     lastTag : str
         The last Git tag found
-    prefix : str
-        The Git tag prefix
     """
+
+    semanticVersion = extractSemanticVersion(lastTag);
+    if semanticVersion:
+        lastTag = semanticVersion;
+
     versionParts = lastTag.split('.')
     major = versionParts[0][(versionParts[0].find('-') + 1)]
     minor = versionParts[1]
@@ -244,68 +263,83 @@ def notEmpty(s: str) -> bool:
     return len(s) > 0 and not s.isspace()
 
 
-def getLastGitTag(prefix: str) -> None:
+def version_key(tag):
+    global prefix
+
+    if prefix:
+        version = tag.removeprefix('release-')
+    else:
+        version = tag
+
+    main_part, *suffix = re.split(r'-', version, maxsplit=1)
+
+    def parse_part(part):
+        tokens = re.findall(r'\d+|[a-zA-Z]+', part)
+        return [
+            int(token) if token.isdigit() else (0, token)  # force strings to sort after numbers
+            for token in tokens
+        ]
+
+    parts = []
+    for subpart in main_part.split('.'):
+        parts.extend(parse_part(subpart))
+
+    if suffix:
+        parts.append((0, suffix[0]))  # append suffix as lower-priority str
+
+    return parts
+
+def getLastGitTag() -> None:
     """Get the last Git tag
     This method executes `git fetch` and `git tag` to get all actual Git tags. After that it determines the last
-    Git tag (w/o prefix).
+    Git tag (w/o prefix)."""
 
-    Parameter
-    ---------
-    prefix : str
-        Git tag prefix if provided
-    """
     gittags = []
-    tags = []
-    pattern = prefix + r'(\d{1,2})\.(\d{1,4})\.(\d{1,4})'
-    Element = namedtuple('Element', 'tagname major minor patch')
+    global localOnly, prefix
 
     with tempfile.TemporaryFile() as tempf:
-        if verbose:
-            Printer.default('Execute `git fetch` to update local repository copy ...')
-        proc = subprocess.Popen(['git', 'tag'], stdout=tempf)
+        if not localOnly:
+            if verbose:
+                Printer.default('Execute `git fetch` to update local repository copy ...')
+            proc = subprocess.Popen(['git', 'fetch'], stdout=tempf)
+            proc.wait()
+
+        args = ['git', 'tag', '-l']
+
+        if prefix:
+            if verbose:
+                Printer.default('Execute `git tag -l --sort=-version:refname "' + prefix + '*"` to get all existing tags ...')
+
+            args.append('--sort=-version:refname')
+            args.append(prefix + '*')
+        else:
+            if verbose:
+                Printer.default('Execute `git tag -l` to get all existing tags ...')
+
+        proc = subprocess.Popen(args, stdout=tempf)
         proc.wait()
 
-        if verbose:
-            Printer.default('Execute `git tag` to get all existing tags ...')
-        proc = subprocess.Popen(['git', 'tag'], stdout=tempf)
-        proc.wait()
         tempf.seek(0)
         line = tempf.readline()
-        cnt = 1
-
-        if verbose:
-            if notEmpty(prefix):
-                Printer.default('Check all tags for given prefix "' + prefix + '" ...')
-            else:
-                Printer.default('Check all tags without prefix ...')
 
         while line:
-            matchObj = re.match(pattern, line.strip().decode('utf-8'), re.M | re.I)
-            if matchObj:
-                gittags.append(Element(matchObj.group(0), matchObj.group(1), matchObj.group(2), matchObj.group(3)))
-
+            gittags.append(line.strip().decode('utf-8'))
             line = tempf.readline()
-            cnt += 1
-
-        if verbose and len(gittags) < 1:
-            if notEmpty(prefix):
-                Printer.error('There are no tags with the prefix "' + prefix + '"!')
-            else:
-                Printer.error('There are no tags without prefix!')
-            return
 
         Printer.tool('Total tags found: ' + str(len(gittags)))
 
-        for item in gittags:
-            tag = item[0]
-            tag = tag[len(prefix):len(tag)]
-            tags.append(tag)
+        if prefix:
+            escaped_prefix = re.escape(prefix)
+            regex_pattern = re.compile(rf'^{escaped_prefix}(\d+)\.(\d+)\.(\d+)(-[\w\.]+)?$')
+        else:
+            regex_pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)(-[\w\.]+)?$')
+        tags = [tag for tag in gittags if regex_pattern.match(tag)]
+        tags = sorted(tags, key=version_key, reverse=True)
 
-        tags.sort(key=lambda s: list(map(int, s.split('.'))))
-        lastTag = tags[-1]
-        Printer.success('Latest tag is: ' + prefix + lastTag)
+        lastTag = tags[0]
+        Printer.success('Latest tag is: ' + lastTag)
 
-        printPossibleNewTags(lastTag, prefix)
+        printPossibleNewTags(lastTag)
 # ======== END OF FUNCTIONS ========
 
 
@@ -319,16 +353,16 @@ def main():
         sys.exit(1)
     # ======= END OF PYTHON VERSION CHECK =======
 
-    prefix = ''
-    global verbose
+    global verbose, localOnly, prefix
 
     opts, args = getopt.getopt(
         sys.argv[1:],
-        'hVvp:',
+        'hVvlp:',
         [
             'help',
             'version',
             'verbose',
+            'local-only',
             'prefix=',
         ]
     )
@@ -338,11 +372,14 @@ def main():
             Printer.default('USAGE: lastgittag --prefix=<tag-prefix>')
             Printer.default('-h\t\t\t\tShows this help')
             Printer.default('-p\t--prefix=<tag-prefix>\tGit tag prefix')
+            Printer.default('-l\t--local-only\t\tDon\'t fetch from origin repository, use local repository only.')
             Printer.default('-V\t--version\t\tPrint the version of the lastgittag tool')
             Printer.default('-v\t--verbose\t\tVerbose output')
             sys.exit()
         elif opt in ('-p', '--prefix'):
             prefix = arg
+        elif opt in ('-l', '--local-only'):
+            localOnly = True
         elif opt in ('-V', '--version'):
             Printer.default('Version: ' + toolVersion)
             sys.exit()
@@ -354,7 +391,7 @@ def main():
     else:
         Printer.tool('Looking for latest tag without prefix ... ')
 
-    getLastGitTag(prefix)
+    getLastGitTag()
 # ======== END MAIN LOGIC ========
 
 
