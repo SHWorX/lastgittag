@@ -21,7 +21,7 @@ import tempfile
 import getopt
 from typing import Optional
 
-toolVersion = '1.5.2'
+toolVersion = '1.5.4'
 verbose = False
 localOnly = False
 tagPrefix = ''
