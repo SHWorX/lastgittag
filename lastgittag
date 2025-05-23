@@ -18,14 +18,13 @@ import re
 import subprocess
 import sys
 import tempfile
-from collections import namedtuple
 import getopt
 from typing import Optional
 
 toolVersion = '1.5.2'
 verbose = False
 localOnly = False
-prefix = ''
+tagPrefix = ''
 
 
 # ========  CLASSES  ========
@@ -230,23 +229,25 @@ def printPossibleNewTags(lastTag: str) -> None:
         The last Git tag found
     """
 
-    semanticVersion = extractSemanticVersion(lastTag);
+    global tagPrefix
+
+    semanticVersion = extractSemanticVersion(lastTag)
     if semanticVersion:
-        lastTag = semanticVersion;
+        lastTag = semanticVersion
 
     versionParts = lastTag.split('.')
     major = versionParts[0][(versionParts[0].find('-') + 1)]
     minor = versionParts[1]
     patch = versionParts[2]
 
-    nextMajor = prefix + str(int(major) + 1) + '.0.0'
-    nextMinor = prefix + major + '.' + str((int(minor) + 1)) + '.' + '0'
+    nextMajor = tagPrefix + str(int(major) + 1) + '.0.0'
+    nextMinor = tagPrefix + major + '.' + str((int(minor) + 1)) + '.' + '0'
 
     lastPatchChar = patch[(len(patch) - 1)]
     if lastPatchChar.isalpha():
-        nextPatch = prefix + major + '.' + minor + '.' + str(int(patch[0:(len(patch) - 1)]) + 1)
+        nextPatch = tagPrefix + major + '.' + minor + '.' + str(int(patch[0:(len(patch) - 1)]) + 1)
     else:
-        nextPatch = prefix + major + '.' + minor + '.' + str(int(patch) + 1)
+        nextPatch = tagPrefix + major + '.' + minor + '.' + str(int(patch) + 1)
 
     Printer.default('Next possible MAJOR version: ' + nextMajor)
     Printer.default('Next possible MINOR version: ' + nextMinor)
@@ -264,10 +265,10 @@ def notEmpty(s: str) -> bool:
 
 
 def version_key(tag):
-    global prefix
+    global tagPrefix
 
-    if prefix:
-        version = tag.removeprefix('release-')
+    if tagPrefix:
+        version = tag.removeprefix(tagPrefix)
     else:
         version = tag
 
@@ -295,7 +296,7 @@ def getLastGitTag() -> None:
     Git tag (w/o prefix)."""
 
     gittags = []
-    global localOnly, prefix
+    global localOnly, tagPrefix
 
     with tempfile.TemporaryFile() as tempf:
         if not localOnly:
@@ -306,12 +307,12 @@ def getLastGitTag() -> None:
 
         args = ['git', 'tag', '-l']
 
-        if prefix:
+        if tagPrefix:
             if verbose:
-                Printer.default('Execute `git tag -l --sort=-version:refname "' + prefix + '*"` to get all existing tags ...')
+                Printer.default('Execute `git tag -l --sort=-version:refname "' + tagPrefix + '*"` to get all existing tags ...')
 
             args.append('--sort=-version:refname')
-            args.append(prefix + '*')
+            args.append(tagPrefix + '*')
         else:
             if verbose:
                 Printer.default('Execute `git tag -l` to get all existing tags ...')
@@ -328,8 +329,8 @@ def getLastGitTag() -> None:
 
         Printer.tool('Total tags found: ' + str(len(gittags)))
 
-        if prefix:
-            escaped_prefix = re.escape(prefix)
+        if tagPrefix:
+            escaped_prefix = re.escape(tagPrefix)
             regex_pattern = re.compile(rf'^{escaped_prefix}(\d+)\.(\d+)\.(\d+)(-[\w\.]+)?$')
         else:
             regex_pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)(-[\w\.]+)?$')
@@ -353,7 +354,7 @@ def main():
         sys.exit(1)
     # ======= END OF PYTHON VERSION CHECK =======
 
-    global verbose, localOnly, prefix
+    global verbose, localOnly, tagPrefix
 
     opts, args = getopt.getopt(
         sys.argv[1:],
@@ -377,7 +378,7 @@ def main():
             Printer.default('-v\t--verbose\t\tVerbose output')
             sys.exit()
         elif opt in ('-p', '--prefix'):
-            prefix = arg
+            tagPrefix = arg
         elif opt in ('-l', '--local-only'):
             localOnly = True
         elif opt in ('-V', '--version'):
@@ -386,8 +387,8 @@ def main():
         elif opt in ('-v', '--verbose'):
             verbose = True
 
-    if notEmpty(prefix):
-        Printer.tool('Looking for latest tag with "' + prefix + '" prefix ... ')
+    if notEmpty(tagPrefix):
+        Printer.tool('Looking for latest tag with "' + tagPrefix + '" prefix ... ')
     else:
         Printer.tool('Looking for latest tag without prefix ... ')
 
