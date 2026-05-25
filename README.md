@@ -1,4 +1,16 @@
 # Last Git Tag
+
+## VERY IMPORTANT NOTE
+\########################################################################
+
+This repository has moved to **CODEBERG.ORG**.
+The repository here on Github will **NOT RECEIVE ANY UPDATES ANYMORE**.
+The repository here on Github is now **ARCHIVED AND READ-ONLY**.
+
+**NEW REPOSITORY URL:** [https://codeberg.org/SHWorX/lastgittag](https://codeberg.org/SHWorX/lastgittag)
+
+\########################################################################
+
 ## Description
 This tool check all existing (local) git tags in a repository and return the last tag, and possible next tags.
 
