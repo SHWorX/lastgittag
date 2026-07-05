@@ -1,5 +1,6 @@
 # Last Git Tag
 ## Description
+
 This tool check all existing (local) git tags in a repository and return the last tag, and possible next tags.
 
 **Important note:** This tool works only correct, if a semantic versioning is used in the Git tags, see examples below.
