@@ -14,6 +14,7 @@
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+from collections import Counter
 import re
 import subprocess
 import sys
@@ -28,180 +29,45 @@ tagPrefix = ''
 
 
 # ========  CLASSES  ========
-class BColors:
-    """This class contains the color and font formatting (bold, underline) definitions for messages."""
-
-    # ==== COLORS ====
-    WARNING = '\033[93m'  # light yellow
-    """Light yellow"""
-
-    ERROR = '\033[91m'  # light red
-    """Light red"""
-
-    BLUE = '\033[34m'
-    LIGHTBLUE = '\033[94m'
-    LIGHTGREEN = '\033[92m'
-    CYAN = '\033[36m'
-    DEFAULTCOLOR = '\033[39m'
-
-    # ==== STYLES ====
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    DEFAULT = '\033[0m'
-
-
 class Printer:
-    """Provides methods to print out formatted/colored messages."""
+    COLORS = {
+        "error": "\033[91m",
+        "warning": "\033[93m",
+        "success": "\033[92m",
+        "tool": "\033[36m",
+        "default": "\033[39m",
+    }
 
-    @staticmethod
-    def error(
-            msg: str,
-            bold: Optional[bool] = False,
-            prefix: Optional[bool] = True,
-            startNewline: Optional[bool] = False,
-            endNewline: Optional[bool] = True
-    ) -> None:
-        """Prints an error message (light red).
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
 
-        Parameter
-        ---------
-        msg : str
-            The message to print.
-        bold : bool, default: False
-            Shall the msg printed in bold text.
-        prefix : bool, default: True
-            Shall the message have the prefix "ERROR: ".
-        startNewline : bool, default: False
-            Shall the message begin with a newline character
-        endNewline : bool, default: True
-            Shall the message end with a newline character
-        """
+    @classmethod
+    def print(cls, msg, level="default", bold=False, prefix=None, end="\n"):
+        color = cls.COLORS.get(level, cls.COLORS["default"])
 
-        output = BColors.ERROR + msg + BColors.DEFAULT
-        output = BColors.BOLD + output + BColors.DEFAULT if bold else output
-        output = BColors.ERROR + BColors.BOLD + "ERROR: " + BColors.DEFAULT + output if prefix else output
-        output = "\n" + output if startNewline else output
-        if endNewline:
-            print(output)
-        else:
-            print(output, end="")
+        if prefix:
+            msg = f"{prefix}: {msg}"
 
-    @staticmethod
-    def warning(
-            msg,
-            bold: Optional[bool] = False,
-            prefix: Optional[bool] = True,
-            startNewline: Optional[bool] = False,
-            endNewline: Optional[bool] = True
-    ) -> None:
-        """Prints a warning message (light yellow).
+        if bold:
+            msg = f"{cls.BOLD}{msg}{cls.RESET}"
 
-        Parameter
-        ---------
-        msg : str
-            The message to print.
-        bold : bool, default: False
-            Shall the msg printed in bold text.
-        prefix : bool, default: True
-            Shall the message have the prefix "WARNING: ".
-        startNewline : bool, default: False
-            Shall the message begin with a newline character
-        endNewline : bool, default: True
-            Shall the message end with a newline character
-        """
-        output = BColors.WARNING + msg + BColors.DEFAULT
-        output = BColors.BOLD + output + BColors.DEFAULT if bold else output
-        output = BColors.WARNING + BColors.BOLD + "WARNING: " + BColors.DEFAULT + output if prefix else output
-        output = "\n" + output if startNewline else output
-        if endNewline:
-            print(output)
-        else:
-            print(output, end="")
+        print(f"{color}{msg}{cls.RESET}", end=end)
 
-    @staticmethod
-    def success(
-            msg,
-            bold: Optional[bool] = False,
-            startNewline: Optional[bool] = False,
-            endNewline: Optional[bool] = True
-    ) -> None:
-        """Prints a success message (green).
+    @classmethod
+    def error(cls, msg):
+        cls.print(msg, "error", prefix="ERROR")
 
-        Parameter
-        ---------
-        msg : str
-            The message to print.
-        bold : bool, default: False
-            Shall the msg printed in bold text.
-        prefix : bool, default: True
-            Shall the message have the prefix "ERROR: ".
-        startNewline : bool, default: False
-            Shall the message begin with a newline character
-        endNewline : bool, default: True
-            Shall the message end with a newline character
-        """
-        output = BColors.LIGHTGREEN + msg + BColors.DEFAULT
-        output = BColors.BOLD + output + BColors.DEFAULT if bold else output
-        output = "\n" + output if startNewline else output
-        if endNewline:
-            print(output)
-        else:
-            print(output, end="")
+    @classmethod
+    def warning(cls, msg):
+        cls.print(msg, "warning", prefix="WARNING")
 
-    @staticmethod
-    def tool(
-            msg,
-            bold: Optional[bool] = False,
-            startNewline: Optional[bool] = False,
-            endNewline: Optional[bool] = True
-    ) -> None:
-        """Prints a tool message (cyan).
+    @classmethod
+    def success(cls, msg):
+        cls.print(msg, "success")
 
-        Parameter
-        ---------
-        msg : str
-            The message to print.
-        bold : bool, default: False
-            Shall the msg printed in bold text.
-        startNewline : bool, default: False
-            Shall the message begin with a newline character
-        endNewline : bool, default: True
-            Shall the message end with a newline character
-        """
-        output = BColors.CYAN + msg + BColors.DEFAULT
-        output = BColors.BOLD + output + BColors.DEFAULT if bold else output
-        output = "\n" + output if startNewline else output
-        if endNewline:
-            print(output)
-        else:
-            print(output, end="")
-
-    @staticmethod
-    def default(
-            msg,
-            bold: Optional[bool] = False,
-            startNewline: Optional[bool] = False,
-            endNewline: Optional[bool] = True
-    ) -> None:
-        """Prints message (default color).
-
-        Parameter
-        ---------
-        msg : str
-            The message to print.
-        bold : bool, default: False
-            Shall the msg printed in bold text.
-        startNewline : bool, default: False
-            Shall the message begin with a newline character
-        endNewline : bool, default: True
-            Shall the message end with a newline character
-        """
-        output = BColors.BOLD + msg + BColors.DEFAULT if bold else msg
-        output = "\n" + output if startNewline else output
-        if endNewline:
-            print(output)
-        else:
-            print(output, end="")
+    @classmethod
+    def tool(cls, msg):
+        cls.print(msg, "tool")
 # ========  END OF CLASSES  ========
 
 
@@ -249,9 +115,9 @@ def printPossibleNewTags(lastTag: str) -> None:
     else:
         nextPatch = tagPrefix + major + '.' + minor + '.' + str(int(patch) + 1)
 
-    Printer.default('Next possible MAJOR version: ' + nextMajor)
-    Printer.default('Next possible MINOR version: ' + nextMinor)
-    Printer.default('Next possible PATCH version: ' + nextPatch)
+    Printer.print('Next possible MAJOR version: ' + nextMajor)
+    Printer.print('Next possible MINOR version: ' + nextMinor)
+    Printer.print('Next possible PATCH version: ' + nextPatch)
 
 
 def notEmpty(s: str) -> bool:
@@ -301,7 +167,7 @@ def getLastGitTag() -> None:
     with tempfile.TemporaryFile() as tempf:
         if not localOnly:
             if verbose:
-                Printer.default('Execute `git fetch` to update local repository copy ...')
+                Printer.print('Execute `git fetch` to update local repository copy ...')
             proc = subprocess.Popen(['git', 'fetch'], stdout=tempf)
             proc.wait()
 
@@ -309,13 +175,13 @@ def getLastGitTag() -> None:
 
         if tagPrefix:
             if verbose:
-                Printer.default('Execute `git tag -l --sort=-version:refname "' + tagPrefix + '*"` to get all existing tags ...')
+                Printer.print('Execute `git tag -l --sort=-version:refname "' + tagPrefix + '*"` to get all existing tags ...')
 
             args.append('--sort=-version:refname')
             args.append(tagPrefix + '*')
         else:
             if verbose:
-                Printer.default('Execute `git tag -l` to get all existing tags ...')
+                Printer.print('Execute `git tag -l` to get all existing tags ...')
 
         proc = subprocess.Popen(args, stdout=tempf)
         proc.wait()
@@ -336,6 +202,9 @@ def getLastGitTag() -> None:
             regex_pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)(-[\w\.]+)?$')
         tags = [tag for tag in gittags if regex_pattern.match(tag)]
         tags = sorted(tags, key=version_key, reverse=True)
+
+        if not tags:
+            return
 
         lastTag = tags[0]
         Printer.success('Latest tag is: ' + lastTag)
@@ -370,19 +239,19 @@ def main():
 
     for opt, arg in opts:
         if opt in ('-h', '--help'):
-            Printer.default('USAGE: lastgittag --prefix=<tag-prefix>')
-            Printer.default('-h\t\t\t\tShows this help')
-            Printer.default('-p\t--prefix=<tag-prefix>\tGit tag prefix')
-            Printer.default('-l\t--local-only\t\tDon\'t fetch from origin repository, use local repository only.')
-            Printer.default('-V\t--version\t\tPrint the version of the lastgittag tool')
-            Printer.default('-v\t--verbose\t\tVerbose output')
+            Printer.print('USAGE: lastgittag --prefix=<tag-prefix>')
+            Printer.print('-h\t\t\t\tShows this help')
+            Printer.print('-p\t--prefix=<tag-prefix>\tGit tag prefix')
+            Printer.print('-l\t--local-only\t\tDon\'t fetch from origin repository, use local repository only.')
+            Printer.print('-V\t--version\t\tPrint the version of the lastgittag tool')
+            Printer.print('-v\t--verbose\t\tVerbose output')
             sys.exit()
         elif opt in ('-p', '--prefix'):
             tagPrefix = arg
         elif opt in ('-l', '--local-only'):
             localOnly = True
         elif opt in ('-V', '--version'):
-            Printer.default('Version: ' + toolVersion)
+            Printer.print('Version: ' + toolVersion)
             sys.exit()
         elif opt in ('-v', '--verbose'):
             verbose = True
