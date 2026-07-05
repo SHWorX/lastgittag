@@ -14,13 +14,11 @@
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-from collections import Counter
 import re
 import subprocess
 import sys
 import tempfile
 import getopt
-from typing import Optional
 
 toolVersion = '1.5.4'
 verbose = False
@@ -54,12 +52,22 @@ class Printer:
         print(f"{color}{msg}{cls.RESET}", end=end)
 
     @classmethod
-    def error(cls, msg):
-        cls.print(msg, "error", prefix="ERROR")
+    def error(cls, msg, prefix=None):
+        if prefix is False:
+            cls.print(msg, "error")
+        elif prefix:
+            cls.print(msg, "error", prefix)
+        else:
+            cls.print(msg, "error", prefix="ERROR")
 
     @classmethod
-    def warning(cls, msg):
-        cls.print(msg, "warning", prefix="WARNING")
+    def warning(cls, msg, prefix=None):
+        if prefix is False:
+            cls.print(msg, "warning")
+        elif prefix:
+            cls.print(msg, "warning", prefix)
+        else:
+            cls.print(msg, "warning", prefix="WARNING")
 
     @classmethod
     def success(cls, msg):
@@ -197,9 +205,9 @@ def getLastGitTag() -> None:
 
         if tagPrefix:
             escaped_prefix = re.escape(tagPrefix)
-            regex_pattern = re.compile(rf'^{escaped_prefix}(\d+)\.(\d+)\.(\d+)(-[\w\.]+)?$')
+            regex_pattern = re.compile(rf'^{escaped_prefix}(\d+)\.(\d+)\.(\d+)(-[\w.]+)?$')
         else:
-            regex_pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)(-[\w\.]+)?$')
+            regex_pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)(-[\w.]+)?$')
         tags = [tag for tag in gittags if regex_pattern.match(tag)]
         tags = sorted(tags, key=version_key, reverse=True)
 
