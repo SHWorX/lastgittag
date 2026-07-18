@@ -20,7 +20,7 @@ import sys
 import tempfile
 import getopt
 
-toolVersion = '1.5.4'
+toolVersion = '1.5.7'
 verbose = False
 localOnly = False
 tagPrefix = ''
