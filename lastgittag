@@ -88,7 +88,7 @@ def extractSemanticVersion(tag):
     tag : str
         The Git tag
     """
-    match = re.search(r'\b(\d+)\.(\d+)\.(\d+)\b', tag)
+    match = re.search(r'(\d+)\.(\d+)\.(\d+)', tag)
     if match:
         return '.'.join(match.groups())
     return None
